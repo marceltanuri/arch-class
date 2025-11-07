@@ -3,266 +3,365 @@ marp: true
 theme: default
 class: invert
 paginate: true
+# Define variáveis CSS para consistência
+style: |
+  section {
+    font-size: 22px; /* Um pouco maior para melhor legibilidade */
+    color: var(--text-color);
+    padding: 60px; /* Adiciona um pouco mais de respiro */
+  }
+
+  h1 {
+    font-size: 64px; /* Mais destaque */
+    text-align: center;
+    border-bottom: 4px solid var(--accent-color); /* Linha de destaque para o título */
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    padding-bottom: 5px;
+    font-size: 38px;
+  }
+  
+  h3 {
+    font-size: 34px;
+    margin-top: 0;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px; /* Mais espaço */
+  }
+  .columns-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .highlight {
+      padding: 15px;
+      border-left: 5px solid var(--accent-color);
+      margin: 15px 0;
+      font-style: italic;
+  }
 ---
 
-# Arquitetura de Software
-## Meetup ADA - MELI BackEnd 2025
+# Arquitetura
+### **Do Monolito aos Microservices**
 
-**Marcel Tanuri**  
-abril/2025
-
----
-
-## O que é Arquitetura?
-
-> "Arquitetura de software são as decisões estruturais mais importantes sobre o sistema."  
-— Ralph Johnson
-
----
-
-1. Organização de componentes
-2. Estilo de comunicação entre módulos
-3. Padrões de escalabilidade, segurança e desempenho
-
----
-
-## Por que se fala tanto em Arquitetura?
-
-- Decisões arquiteturais são difíceis e caras de mudar
-- Afetam a manutenibilidade e escalabilidade do software
-- São fundamentais para sistemas modernos e distribuídos
-- Conectam as necessidades do negócio com as soluções técnicas
-
----
-
-## Onde a Arquitetura aparece na prática?
-
-- **Startups**: decisões rápidas, mas com impacto duradouro
-- **Empresas maduras**: arquitetura governada e documentada
-- **Sistemas legados**: arquitetura emergente ou envelhecida
-- **SaaS, APIs, microserviços, monolitos, apps móveis**...
-
----
-
-## Livros que marcaram gerações
-
-- _Software Architecture in Practice_ — Bass, Clements, Kazman
-- _Clean Architecture_ — Robert C. Martin
-- _The Art of Scalability_ — Abbott, Fisher
-- _Designing Data-Intensive Applications_ — Martin Kleppmann
-- _Domain-Driven Design_ — Eric Evans
-
----
-
-## Estilos Arquiteturais Clássicos
-
-- **Monolito**
-- **Camadas (Layered)**
-- **Cliente-Servidor**
-- **Pipe and Filter**
-- **Model-View-Controller (MVC)**
-- **Broker**
+<br>
+<br>
+<br>
 
 ---
 
-## Estilos Arquiteturais Atuais
+### ⚠️ O Problema: A "Bola de Lama" (Big Ball of Mud)
 
-- **Microservices**
-- **Event-Driven Architecture (EDA)**
-- **Serverless**
-- **Hexagonal (Ports & Adapters)**
-- **Clean Architecture**
-- **Service Mesh**
-- **Modular Monolith**
+Com o tempo, em um projeto real, a complexidade se acumula:
 
----
+* **Fragilidade:** Alterar uma UI pode quebrar uma regra de negócio central.
+* **Rigidez:** Mudar a tecnologia de persistência (DB) parece impossível.
+* **Dispersão:** A lógica de negócio está espalhada entre **Controllers**, **Services** e **Models**.
+* **Testes Lentos:** Os testes de integração se tornam a única forma de garantir a funcionalidade.
 
-## Estilos Arquiteturais podem se misturar
-
-| Combinação                          | O que representa                                                   |
-|-----------------------------------|-------------------------------------------------------------------|
-| Microservices + EDA               | Serviços independentes que se comunicam via eventos               |
-| Microservices + Clean Architecture| Cada serviço com domínio limpo e camadas bem definidas           |
-| Serverless + EDA                  | Funções disparadas por eventos (ex: AWS Lambda + SQS/SNS)         |
-| Hexagonal + Microservices         | Cada serviço isola dependências externas com adapters             |
-| Clean + Hexagonal                 | Foco no domínio + regras de dependência invertidas               |
-| Microservices + Service Mesh      | Microserviços com controle de tráfego, retries e observabilidade |
-
-> Misturar estilos é comum e saudável, desde que cada escolha tenha propósito.
+> **Resultado:** O software fica *caro para manter* e *arriscado para alterar*.
 
 ---
 
-## Arquitetura em Camadas (Layered)
+### 📉 A Arquitetura Padrão (O Perigo da Dependência)
 
-- Muito comum em aplicações Spring Boot
-- Separação por responsabilidade
+A estrutura típica em Spring é ótima para começar, mas...
 
-```plaintext
-[Controller] → [Service] → [Repository]
+**O Fluxo de Dados:** Cliente ➡️ Controller ➡️ Service ➡️ Repository ➡️ Banco de Dados.
+
+**Qual é o problema?**
+
+A sua **Lógica de Negócio** (`@Service`) depende **diretamente** da **Infraestrutura** (`@Repository` do Spring Data JPA).
+
+> **A COPLAMENTO:** Se trocarmos o SQL por um MongoDB ou uma API externa, você terá que reescrever sua camada de **`@Service`**!
+
+---
+
+### 💡 A Ideia Central de TODAS as Arquiteturas Limpas
+
+<br>
+
+# SEPARE AS PREOCUPAÇÕES!
+
+> A sua **Lógica de Negócio** (o "coração" do seu software) **não deve depender** de **detalhes de implementação** (frameworks, bancos de dados, ou APIs).
+
+<div class="highlight">
+  São os **detalhes** que devem depender do **coração**, e não o contrário!
+</div>
+
+---
+
+### 🏰 A Consolidação: Os "Ancestrais"
+
+A "Clean Architecture" não surgiu do nada. Ela foi uma consolidação de ideias que resolviam o mesmo problema:
+
+* **Arquitetura Hexagonal (Ports & Adapters)** - *Alistair Cockburn*
+* **Onion Architecture (Arquitetura "Cebola")** - *Jeffrey Palermo*
+
+> **Clean Architecture** (Uncle Bob) pegou essas ideias e deu a elas um nome e um diagrama fáceis de lembrar.
+
+---
+
+### 🎯 Clean Architecture (Robert C. Martin)
+
+O famoso diagrama de "alvos".
+
+
+
+**O objetivo é o mesmo:** Isolar o núcleo de negócio para que ele seja a parte mais fácil e barata de testar e mudar.
+
+---
+
+### 🔑 A Regra de Ouro: A Regra da Dependência
+
+Não importa quantas camadas você tenha. A regra é UMA:
+
+> **As dependências do código-fonte só podem apontar para DENTRO.**
+
+* Uma classe em um círculo **interno** não pode saber NADA sobre uma classe em um círculo **externo**.
+* `UseCase` (interno) **NÃO PODE** importar `Repository` (externo).
+* `Entity` (interno) **NÃO PODE** importar `Spring` (externo).
+
+<br>
+<center>
+  <div style="font-size: 50px; font-weight: bold; color: var(--accent-color); padding: 10px; background-color: #ffe0b2; border-radius: 5px;">
+    [Externo] ➡ [Interno]  <span style="color: red;">❌</span> <br>
+    [Externo] ⬅ [Interno]  <span style="color: green;">✅</span>
+  </div>
+</center>
+
+---
+
+### 🧱 As Camadas (1/4): Entities (Entidades)
+
+![bg right:40% 100%](https://blog.cleancoder.com/uncle-bob/images/2012-08-13-the-clean-architecture/CleanArchitecture.jpg)
+
+* **O que é:** Os objetos puros do seu negócio (Ex: `Pedido`, `Cliente`).
+* **Regra:** Contêm as regras de negócio mais gerais (Ex: "Um Pedido não pode ter valor negativo").
+* **Java:** Classes **POJO** simples, sem anotações de framework!
+    * *O `@Entity` do JPA não deve viver aqui.*
+
+---
+
+### 🧱 As Camadas (2/4): Use Cases (Casos de Uso)
+
+![bg right:40% 100%](https://blog.cleancoder.com/uncle-bob/images/2012-08-13-the-clean-architecture/CleanArchitecture.jpg)
+
+* **O que é:** A lógica específica da **aplicação** (o fluxo de trabalho).
+* **Regra:** Orquestra a ação. Ex: O fluxo para *Criar um Pedido*.
+* **Java:** Classes de serviço que dependem de **interfaces** (Portas), não de implementações concretas (Repository JPA).
+
+---
+
+### 🧱 As Camadas (3/4): Interface Adapters (Adaptadores)
+
+![bg right:40% 100%](https://blog.cleancoder.com/uncle-bob/images/2012-08-13-the-clean-architecture/CleanArchitecture.jpg)
+
+* **O que é:** "Tradutores" entre o mundo exterior e o Use Case.
+* **Regra:** Converte dados do formato do framework para o formato do Use Case, e vice-versa.
+* **Exemplos:**
+    * **Controllers:** Pegam a requisição HTTP e chamam o Use Case.
+    * **Repositories:** **Implementam** as interfaces de persistência definidas pelo Use Case (usando JPA, JDBC, etc.).
+
+---
+
+### 🧱 As Camadas (4/4): Frameworks & Drivers (Detalhes)
+
+![bg right:40% 100%](https://blog.cleancoder.com/uncle-bob/images/2012-08-13-the-clean-architecture/CleanArchitecture.jpg)
+
+* **O que é:** O mundo exterior.
+* **Regra:** Todos os detalhes que você não controla.
+* **Exemplos:** O Spring Boot em si, o Banco de Dados (PostgreSQL, H2), a Web (Tomcat), APIs Externas (Stripe, Kafka).
+
+---
+
+### 🪄 A Mágica: Inversão de Dependência (Em Java)
+
+Como o `UseCase` (interno) fala com o `Repository` (externo) sem violar a regra?
+
+**O Jeito Certo (Desacoplado):**
+1.  O **UseCase** define uma **interface (Porta)** que ele precisa.
+2.  O **Repository** (Adaptador) **implementa** essa interface.
+
+<br>
+<div class="highlight">
+  O UseCase depende apenas da **"promessa"** (a Interface), não da **"realização"** (a Implementação JPA).
+</div>
+<br>
+
+**Fluxo de Dependência:** UseCase ➡️ Interface (Porta) ⬅️ Implementação (Adaptador)
+
+```java
+// 1. Pacote Interno (application)
+public interface IPedidoRepository {
+    void salvar(Pedido pedido);
+}
+
+// 2. Pacote Interno (usecases) 
+public class CriarPedidoUseCase { private final IPedidoRepository repository; 
+// OK! Depende da interface // ... 
+}
+
+// 3. Pacote Externo (infrastructure) 
+public class JpaPedidoRepository implements IPedidoRepository { 
+  // ... Usa o Spring Data JPA aqui ... 
+  public void salvar(Pedido pedido) { 
+    /* ... */ 
+    } 
+}
+
+```
+---
+
+## 🌐 E os Microservices? O Escopo Muda.
+
+A regra é simples:
+
+> **Cada Microservice é, em si, uma pequena aplicação que segue a Clean Architecture.**
+
+* O Microservice-A é um sistema completo.
+* Para o Microservice-A, a existência do Microservice-B é um **"detalhe de infraestrutura"** (camada externa).
+
+---
+
+### Exemplo: Serviço A (Pedidos) 📞 Serviço B (Estoque)
+
+**Cenário:** O `CriarPedidoUseCase` (Serviço A) precisa verificar o estoque (Serviço B) antes de criar o pedido.
+
+<br>
+
+**Pergunta:** Como o UseCase (interno) chama uma API REST (externa) sem violar a **Regra da Dependência**?
+
+---
+
+### ❌ O Jeito Errado (Microservice Acoplado)
+
+
+```java
+// Pacote Interno (usecases) - SERVIÇO A
+public class CriarPedidoUseCase {
+    
+    // VIOLAÇÃO!
+    // Depende de uma tecnologia externa (Spring/Feign)
+    private FeignEstoqueClient feignClient;
+
+    public void execute(Pedido pedido) {
+    // Acoplado! O que acontece se o Serviço B mudar de REST para Kafka?
+    if (feignClient.verificarEstoque(pedido.getProductId())) {
+        // ...
+    }
+  }
+
+}
 ```
 
-### Benefícios:
-- Separação de responsabilidades
-- Testabilidade
-- Boa para sistemas pequenos e médios
-
-### Desafios:
-- Pode virar "tudo depende de tudo"
-- Escalabilidade limitada
+`Isso torna seu **Caso de Uso** (coração do negócio) impossível de testar sem a rede.`
 
 ---
 
-## Comparativo
-
-| Estilo         | Acoplamento | Escalabilidade | Complexidade |
-|----------------|-------------|----------------|--------------|
-| Monolito       | Alto        | Baixa          | Baixa        |
-| Camadas        | Médio       | Média          | Média        |
-| Microservices  | Baixo       | Alta           | Alta         |
-| Serverless     | Muito baixo | Muito alta     | Alta         |
+> **Consequência:**
+>
+> 1.  **VIOLAÇÃO!** O coração do negócio depende de uma tecnologia externa (HTTP/Spring/Feign).
+> 2.  **Impossível de testar** o UseCase sem a rede.
+> 3.  Se o Serviço B mudar de REST para Kafka, o UseCase **terá que ser alterado**!
 
 ---
 
-## Foco da Aula: Microservices
+### O Jeito Certo (Microservice Limpo)
 
-### Por que é relevante hoje?
+**Passo 1: A Porta (Interface) - Camada INTERNA**
 
-- Escalabilidade independente por domínio
-- Observabilidade, resiliência, deploy contínuo
-- Amplamente usado em empresas modernas e cloud-native
+O UseCase define o que ele precisa, através de uma interface (Porta) no seu próprio pacote.
 
----
+```java
+// Pacote Interno (application.ports) - SERVIÇO A
+public interface IEstoqueService {
+    boolean verificarDisponibilidade(String productId);
+}
 
-## Arquitetura moderna com Microservices
+// Pacote Interno (usecases) - SERVIÇO A 
+public class CriarPedidoUseCase { 
+  // OK! Depende apenas de uma interface interna 
+  private final IEstoqueService estoqueService;
 
-- Serviços pequenos e especializados
-- Independência de deploy e linguagem
-- Comunicação via HTTP (REST) e Mensageria (RabbitMQ, Kafka, etc)
-- Infraestrutura de suporte essencial:
-  - API Gateway
-  - Message Broker
-  - Observabilidade (logs, métricas, tracing)
+public void execute(Pedido pedido) {`
+    if (estoqueService.verificarDisponibilidade(pedido.getProductId())) {`
+        // ...
+    }
+  }
 
----
-
-## API Gateway
-
-- Porta de entrada única para todos os serviços
-- Controle de autenticação, rate limit, logging
-- Ex: Spring Cloud Gateway, NGINX, Kong
-
-```plaintext
-Client ───▶ API Gateway ───▶ Users Service
-                          └───▶ Orders Service
+}
 ```
 
 ---
 
-## Message Broker (Fila de Mensagens)
+### O Jeito Certo (Microservice Limpo)
 
-- Comunicação assíncrona entre serviços
-- Permite desacoplamento e resiliência
-- Ex: RabbitMQ, Kafka
+**Passo 2: O Adaptador (Impl. HTTP) - Camada EXTERNA**
 
-```plaintext
-Users Service ───▶ [Fila: user.created] ───▶ Email Service
+Na camada de infraestrutura, criamos o "Adaptador" que implementa a interface, usando as ferramentas externas (Feign, RestTemplate).
+
+```java
+// Pacote Externo (infrastructure.adapters) - SERVIÇO A
+@Component
+public class EstoqueServiceHttpClient implements IEstoqueService {
+    
+    // O Feign Client é um detalhe de implementação
+    private final FeignEstoqueClient feignClient;
+
+    @Override
+    public boolean verificarDisponibilidade(String productId) {
+        // O "adaptador" faz a tradução e chama o mundo exterior
+        return feignClient.verificarEstoque(productId);
+    }
+}
 ```
 
 ---
 
-## Como os serviços se comunicam?
+### Benefícios Finais
 
-### Comunicação REST (síncrona):
-```plaintext
-Cliente → API Gateway → Serviço REST
-```
-- O Gateway redireciona com base na URL (ex: `/users` → User Service)
-- Comunicação direta por HTTP
+Por que fazer todo esse trabalho?
 
-### Comunicação via broker (assíncrona):
-```plaintext
-User Service → [RabbitMQ] → Outro serviço consumidor
-```
-- Comunicação desacoplada
-- Serviço A não precisa conhecer serviço B
+1. **Testabilidade:** Você pode testar seu CriarPedidoUseCase100% em memória, com um Mock doIEstoqueService. Seus testes são **rápidos** e **confiáveis**. 2. **Manutenibilidade:** O Serviço B mudou de REST para Kafka? Você **não toca** no UseCase. Você apenas cria um novo EstoqueServiceKafkaAdapter e troca a implementação no Spring. 3. **Independência:** Seu núcleo de negócio (Use Cases) não sabe que existe Spring, Kafka, REST ou SQL. Ele só conhece as **regras de negócio**.
 
 ---
 
-## Arquitetura na prática
+# Estrutura de Pacotes (Clean Architecture em Java/Spring)
 
-Vamos montar juntos:
+A chave é organizar o projeto de modo que os pacotes externos (Infraestrutura) **sempre importem** os pacotes internos (Núcleo), respeitando a Regra da Dependência.
 
-- API Gateway
-- 2 Microserviços (ex: `users`, `orders`)
-- Comunicação via HTTP (REST)
-- Spring Boot + Docker Compose
+## 1. Núcleo (Camadas Internas)
 
----
-
-## Demonstração (Live Coding)
-
-### Objetivo:
-
-- Mostrar separação de responsabilidades
-- Mostrar chamada entre serviços
-- Demonstrar como evoluir serviços de forma independente
+Estes pacotes contêm a lógica de negócio e as definições de contratos. **Não devem ter dependências de frameworks externos (Spring, JPA, etc.)**.
 
 ---
 
-## Clean Architecture
-
-- Proposta por Robert C. Martin (Uncle Bob)
-- Organiza o sistema de forma centrada no domínio
-- Regra de ouro: as dependências sempre apontam para o centro
-
-```plaintext
-[ Frameworks & Drivers ]
-        ↓
-[ Interface Adapters ]
-        ↓
-[ Application Rules ]
-        ↓
-[ Enterprise Rules ]
-```
-
-- Entidades e regras de negócio não conhecem nada externo
-- Controladores e Repositórios são adaptadores na borda
+| Pacote | Conteúdo Principal | Camada da Clean Arch |
+| :--- | :--- | :--- |
+| **com.app.domain** | **Entities** (Objetos de negócio puros, POJOs), Value Objects, e as regras de negócio mais gerais. | Entities |
+| **com.app.application.ports** | **Interfaces** (Portas) que definem o que o Use Case precisa para persistência e serviços externos (Ex: IPedidoRepository). | Ports |
+| **com.app.application.usecases** | A lógica da aplicação (**Use Cases**). Orquestra o fluxo de dados e depende apenas das interfaces em .ports. | Use Cases |
 
 ---
 
-## Clean Architecture na prática
+## 2. Infra (Camadas Externas)
 
-### Benefícios:
-- Testabilidade alta
-- Independência de framework e banco
-- Foco em domínio, não em tecnologia
+Estes pacotes contêm os adaptadores que implementam os contratos definidos no **Núcleo**. **Podem depender de frameworks externos (Spring, JPA, Feign, etc.)**.
 
-### Aplicação com Spring Boot:
-- Requer disciplina e separação de pacotes
-- Camadas internas puras, interfaces implementadas externamente
-
-### Quando usar:
-- Projetos com regras de negócio importantes
-- Domínios complexos e em crescimento
+| Pacote | Conteúdo Principal | Função / Exemplo |
+| :--- | :--- | :--- |
+| **com.app.infrastructure.web** | Tradutores de Entrada (**Controllers**, DTOs). Lida com HTTP e chama os Use Cases. | Adapter (Primário) |
+| **com.app.infrastructure.persistence** | Implementações concretas das Interfaces de Repository, utilizando **Spring Data JPA, JDBC, etc.** | Adapter (Secundário) |
+| **com.app.infrastructure.external** | Adaptadores para APIs e serviços externos (**Clients Feign, Kafka Producers, gRPC clients**). | Adapter (Secundário) |
 
 ---
 
-## Considerações finais
+# Perguntas?
 
-- Arquitetura não é sobre tecnologia, é sobre decisões
-- Arquitetura influencia diretamente na saúde do software
-- Estudar arquitetura é essencial para crescer na carreira
-
----
-
-## Perguntas e Discussão
-🧠💬
-
----
-
-## Referências
-
-- IEEE 1471 – Architecture Description
-- Martin Fowler - Software Architecture Guide
-- ThoughtWorks Technology Radar
-- Livros mencionados anteriormente
